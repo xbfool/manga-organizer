@@ -87,5 +87,45 @@
     "console_output": true,
     "file_output": true,
     "encoding": "utf-8"
+  },
+
+  "komga_prepare": {
+    "source_dirs": [
+      "Z:/漫画/日漫",
+      "Z:/漫画/美漫",
+      "Z:/漫画/港漫"
+    ],
+    "output_dir": "Z:/漫画-Komga就绪",
+
+    "language_priority": ["zh", "ja", "romaji", "en"],
+
+    "metadata_sources": {
+      "bangumi": {
+        "enabled": true,
+        "priority": 1
+      },
+      "trace_moe": {
+        "enabled": true,
+        "priority": 2
+      },
+      "anilist": {
+        "enabled": true,
+        "priority": 3
+      },
+      "comicvine": {
+        "enabled": false,
+        "api_key": "",
+        "priority": 4
+      }
+    },
+
+    "cover_download": true,
+    "create_series_comicinfo": false,
+
+    "naming": {
+      "japanese": "{title_zh} v{volume:02d}",
+      "american": "{title} #{issue:03d}",
+      "chinese": "{title} 第{volume:02d}册"
+    }
   }
 }
