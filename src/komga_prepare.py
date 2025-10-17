@@ -160,7 +160,8 @@ class KomgaPreparer:
         for file_path in source_dir.rglob('*'):
             if file_path.suffix.lower() in supported_formats:
                 # 提取系列名（使用父目录名）
-                series_name = file_path.parent.name
+                raw_series_name = file_path.parent.name
+                series_name = self._clean_series_name(raw_series_name)
 
                 # 提取卷号
                 volume_num = self._extract_volume_number(file_path.name)
@@ -349,6 +350,37 @@ class KomgaPreparer:
 
         else:
             return self.output_dir / '其他' / metadata.get_best_title(self.language_priority)
+
+    def _clean_series_name(self, name: str) -> str:
+        """
+        清理系列名，移除方括号标记
+
+        Args:
+            name: 原始系列名
+
+        Returns:
+            清理后的系列名
+
+        Examples:
+            神兵前传III[7][未] -> 神兵前传III
+            灌篮高手[完] -> 灌篮高手
+            海贼王 [1-100] -> 海贼王
+        """
+        import re
+
+        # 移除方括号及其内容：[7][未]、[完]、[1-100] 等
+        cleaned = re.sub(r'\s*\[[^\]]*\]', '', name)
+
+        # 移除圆括号及其内容（可选，如果需要也清理圆括号）
+        # cleaned = re.sub(r'\s*\([^\)]*\)', '', cleaned)
+
+        # 清理多余的空格
+        cleaned = ' '.join(cleaned.split())
+
+        # 移除首尾空格
+        cleaned = cleaned.strip()
+
+        return cleaned
 
     def _extract_volume_number(self, filename: str) -> Optional[int]:
         """提取卷号"""
