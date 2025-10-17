@@ -13,9 +13,15 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 import shutil
 import json
+import zipfile
+import tempfile
+import rarfile
 
 # 添加src目录到路径
 sys.path.insert(0, str(Path(__file__).parent))
+
+# 配置UnRAR工具路径
+rarfile.UNRAR_TOOL = r"C:\Program Files\UnRAR\UnRAR.exe"
 
 from metadata_sources import (
     MangaMetadata,
@@ -63,6 +69,7 @@ class KomgaPreparer:
         self.config = config
         self.output_dir = Path(config['output_dir'])
         self.language_priority = config.get('language_priority', ['zh', 'ja', 'romaji', 'en'])
+        self.temp_dir = Path(config.get('temp_directory', '.temp_conversion'))
 
         # 初始化元数据源
         self.metadata_sources = []
@@ -97,6 +104,7 @@ class KomgaPreparer:
             'processed_volumes': 0,
             'metadata_found': 0,
             'metadata_not_found': 0,
+            'converted': 0,
             'errors': 0
         }
 
@@ -147,9 +155,10 @@ class KomgaPreparer:
 
         series_dict = {}
 
-        # 递归查找所有CBZ/CBR文件
+        # 递归查找所有漫画文件
+        supported_formats = ['.cbz', '.cbr', '.zip', '.rar', '.7z', '.pdf']
         for file_path in source_dir.rglob('*'):
-            if file_path.suffix.lower() in ['.cbz', '.cbr', '.zip']:
+            if file_path.suffix.lower() in supported_formats:
                 # 提取系列名（使用父目录名）
                 series_name = file_path.parent.name
 
@@ -263,19 +272,40 @@ class KomgaPreparer:
 
             output_path = output_dir / filename
 
-            # 复制文件
-            if not output_path.exists() or output_path.stat().st_size != volume.file_size:
-                logger.info(f"    复制: {filename}")
-                shutil.copy2(volume.path, output_path)
+            # 检查是否需要处理
+            if output_path.exists():
+                logger.info(f"    跳过（已存在）: {filename}")
+            else:
+                # 转换文件为CBZ格式
+                file_ext = volume.path.suffix.lower()
+                if file_ext == '.pdf':
+                    # PDF保持原样
+                    output_path = output_path.with_suffix('.pdf')
+                    logger.info(f"    复制PDF: {filename}")
+                    shutil.copy2(volume.path, output_path)
+                elif file_ext in ['.rar', '.cbr', '.7z']:
+                    # 需要转换
+                    logger.info(f"    转换: {filename}")
+                    if not self._convert_to_cbz(volume.path, output_path):
+                        logger.error(f"    转换失败: {filename}")
+                        return
+                    self.stats['converted'] += 1
+                else:
+                    # ZIP/CBZ直接复制
+                    logger.info(f"    复制: {filename}")
+                    if not self._convert_to_cbz(volume.path, output_path):
+                        logger.error(f"    复制失败: {filename}")
+                        return
 
-            # 生成并嵌入ComicInfo.xml
-            comicinfo_xml = self.comicinfo_gen.generate(
-                metadata,
-                volume_num=volume.volume_num,
-                total_volumes=len(series.volumes)
-            )
+            # 生成并嵌入ComicInfo.xml (仅CBZ格式)
+            if output_path.suffix.lower() in ['.cbz', '.zip']:
+                comicinfo_xml = self.comicinfo_gen.generate(
+                    metadata,
+                    volume_num=volume.volume_num,
+                    total_volumes=len(series.volumes)
+                )
 
-            self.comicinfo_gen.embed_into_cbz(output_path, comicinfo_xml)
+                self.comicinfo_gen.embed_into_cbz(output_path, comicinfo_xml)
 
             self.stats['processed_volumes'] += 1
 
@@ -351,6 +381,111 @@ class KomgaPreparer:
 
         return '其他'
 
+    def _convert_to_cbz(self, source_path: Path, target_path: Path) -> bool:
+        """
+        转换文件为CBZ格式
+
+        Args:
+            source_path: 源文件路径
+            target_path: 目标CBZ路径
+
+        Returns:
+            是否成功
+        """
+        file_ext = source_path.suffix.lower()
+
+        try:
+            # ZIP格式直接重命名
+            if file_ext == '.zip':
+                shutil.copy2(source_path, target_path)
+                return True
+
+            # CBZ格式直接复制
+            elif file_ext == '.cbz':
+                shutil.copy2(source_path, target_path)
+                return True
+
+            # PDF格式保持不变
+            elif file_ext == '.pdf':
+                # PDF不转换，直接复制
+                pdf_target = target_path.with_suffix('.pdf')
+                shutil.copy2(source_path, pdf_target)
+                return True
+
+            # RAR/CBR/7z需要真实转换
+            elif file_ext in ['.rar', '.cbr', '.7z']:
+                return self._extract_and_repack(source_path, target_path)
+
+            else:
+                logger.warning(f"不支持的格式: {file_ext}")
+                return False
+
+        except Exception as e:
+            logger.error(f"转换失败 {source_path}: {e}")
+            return False
+
+    def _extract_and_repack(self, source_path: Path, target_path: Path) -> bool:
+        """
+        解压RAR/CBR/7z并重新打包为CBZ
+
+        Args:
+            source_path: 源文件路径
+            target_path: 目标CBZ路径
+
+        Returns:
+            是否成功
+        """
+        temp_extract_dir = None
+
+        try:
+            # 创建临时解压目录
+            self.temp_dir.mkdir(parents=True, exist_ok=True)
+            temp_extract_dir = tempfile.mkdtemp(dir=self.temp_dir)
+            temp_extract_path = Path(temp_extract_dir)
+
+            # 解压文件
+            logger.info(f"    解压: {source_path.name}")
+
+            file_ext = source_path.suffix.lower()
+
+            if file_ext in ['.rar', '.cbr']:
+                # 解压RAR
+                with rarfile.RarFile(source_path) as rf:
+                    rf.extractall(temp_extract_path)
+
+            elif file_ext == '.7z':
+                # 解压7z (需要py7zr库)
+                try:
+                    import py7zr
+                    with py7zr.SevenZipFile(source_path, mode='r') as z:
+                        z.extractall(temp_extract_path)
+                except ImportError:
+                    logger.error("需要安装py7zr库: pip install py7zr")
+                    return False
+
+            # 重新打包为CBZ (ZIP)
+            logger.info(f"    打包: {target_path.name}")
+            with zipfile.ZipFile(target_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for file in sorted(temp_extract_path.rglob('*')):
+                    if file.is_file():
+                        # 使用相对路径
+                        arcname = file.relative_to(temp_extract_path)
+                        zf.write(file, arcname)
+
+            return True
+
+        except Exception as e:
+            logger.error(f"解压重打包失败 {source_path}: {e}")
+            return False
+
+        finally:
+            # 清理临时目录
+            if temp_extract_dir and Path(temp_extract_dir).exists():
+                try:
+                    shutil.rmtree(temp_extract_dir)
+                except Exception as e:
+                    logger.warning(f"清理临时目录失败 {temp_extract_dir}: {e}")
+
     def print_stats(self):
         """打印统计信息"""
         logger.info("\n" + "=" * 60)
@@ -360,6 +495,7 @@ class KomgaPreparer:
         logger.info(f"已处理系列: {self.stats['processed_series']}")
         logger.info(f"卷总数: {self.stats['total_volumes']}")
         logger.info(f"已处理卷: {self.stats['processed_volumes']}")
+        logger.info(f"格式转换: {self.stats['converted']}")
         logger.info(f"元数据找到: {self.stats['metadata_found']}")
         logger.info(f"元数据未找到: {self.stats['metadata_not_found']}")
         logger.info(f"错误: {self.stats['errors']}")
