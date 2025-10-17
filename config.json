@@ -1,0 +1,91 @@
+{
+  "version": "1.0",
+  "description": "漫画整理工具配置文件",
+
+  "paths": {
+    "target_directory": "漫画-已整理",
+    "temp_directory": ".temp_conversion",
+    "log_file": "manga_organizer.log"
+  },
+
+  "formats": {
+    "target_format": "cbz",
+    "supported_formats": [".zip", ".rar", ".cbz", ".cbr", ".pdf", ".7z"],
+    "convert_formats": {
+      "zip": "rename",
+      "rar": "convert",
+      "cbr": "convert",
+      "cbz": "keep",
+      "pdf": "keep",
+      "7z": "convert"
+    }
+  },
+
+  "naming": {
+    "format": "{series_name} - {volume}",
+    "volume_padding": 3,
+    "separator": " - ",
+    "remove_brackets": false
+  },
+
+  "categories": {
+    "日漫": {
+      "keywords": ["日漫", "日本", "japanese", "manga", "jp"],
+      "structure": ["language", "author", "series"],
+      "languages": {
+        "中文版": ["中文", "中译", "汉化", "chinese", "cn"],
+        "日文版": ["日文", "日语", "原版", "japanese", "jp", "raw"],
+        "双语版": ["双语", "中日", "合版", "bilingual"]
+      }
+    },
+    "美漫": {
+      "keywords": ["美漫", "美国", "american", "comics", "marvel", "dc"],
+      "structure": ["publisher", "series"],
+      "publishers": {
+        "漫威": ["marvel", "漫威"],
+        "DC": ["dc", "detective comics"],
+        "其他": []
+      }
+    },
+    "港漫": {
+      "keywords": ["港漫", "香港", "hongkong", "hk"],
+      "structure": ["series"]
+    },
+    "连环画": {
+      "keywords": ["连环画", "小人书"],
+      "structure": ["category", "series"]
+    }
+  },
+
+  "processing": {
+    "batch_size": 100,
+    "skip_existing": true,
+    "mark_processed_dirs": true,
+    "processed_marker": "[已处理]",
+    "create_backup": false
+  },
+
+  "filters": {
+    "min_file_size": 0,
+    "max_file_size": 0,
+    "exclude_patterns": [
+      "*.txt",
+      "*.nfo",
+      "*.url",
+      "Thumbs.db",
+      ".DS_Store"
+    ],
+    "exclude_directories": [
+      ".temp",
+      "backup",
+      "已整理"
+    ]
+  },
+
+  "logging": {
+    "level": "INFO",
+    "console_output": true,
+    "file_output": true,
+    "encoding": "utf-8"
+  }
+}

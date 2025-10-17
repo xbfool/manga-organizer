@@ -1,0 +1,16 @@
+# 漫画整理工具依赖包
+
+# 处理RAR压缩文件
+rarfile>=4.0
+
+# HTTP请求库（用于元数据查询）
+requests>=2.28.0
+
+# 其他依赖（Python标准库已包含）
+# - zipfile: 处理ZIP/CBZ文件
+# - pathlib: 路径处理
+# - json: JSON文件处理
+# - logging: 日志记录
+# - shutil: 文件操作
+# - re: 正则表达式
+# - dataclasses: 数据类
