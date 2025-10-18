@@ -615,10 +615,50 @@ file_name = f"{series_name} - {volume}.cbz"
 
 ### 当前状态
 
+**已完成功能（2025-10-18）：**
+
 - ✅ 基础Komga准备工具完成
 - ✅ 格式转换功能完成
 - ✅ 元数据聚合完成
 - ✅ 系列名清理完成
-- 🚧 嵌套RAR处理 - 待开发
-- 🚧 渐进式处理 - 待开发
-- 🚧 探测工具 - 待开发
+- ✅ **嵌套RAR处理 - 完成**
+  - ✅ RAR探测工具（`src/rar_inspector.py`）
+  - ✅ 嵌套RAR递归解压
+  - ✅ 日文标记清理
+  - ✅ 卷号提取和标准化
+  - ✅ CBZ自动生成
+  - ✅ 即时临时文件清理（避免文件混淆）
+- ✅ **元数据集成 - 完成**
+  - ✅ Bangumi API客户端（`src/metadata_bangumi.py`）
+  - ✅ AniList API客户端（`src/metadata_anilist.py`，备用）
+  - ✅ ComicInfo.xml生成器（`src/comicinfo_generator.py`）
+  - ✅ 自动嵌入ComicInfo.xml到CBZ
+  - ✅ 基于元数据的智能命名
+- ✅ **进度跟踪 - 完成**
+  - ✅ 简化跟踪器（`src/simple_tracker.py`）
+  - ✅ JSON格式（人类可读）
+  - ✅ 原子操作（每个文件完整处理或从头开始）
+  - ✅ 已完成文件自动跳过
+- ✅ **V2处理器 - 完成**（`src/nested_rar_processor_v2.py`）
+  - ✅ 完整功能集成
+  - ✅ Windows中文/日文路径支持
+  - ✅ 配置文件路径读取（`config.json`）
+  - ✅ 测试通过（1文件→4个CBZ，73秒）
+
+**测试结果：**
+- 📊 Comics目录扫描：1,472个RAR文件
+- 📊 嵌套RAR占比：87%（1,284个）
+- 📊 单文件处理：成功生成4个CBZ（1.3GB）
+- ⚡ 处理速度：~20秒/卷
+- ✅ 临时文件清理：即时清理，无混淆风险
+
+**待完成：**
+- 🚧 全量处理（1,472个文件）
+- 🚧 元数据匹配优化（改进搜索关键词提取）
+- 🚧 封面下载功能（可选）
+
+**当前可用工具：**
+1. `test_v2.ps1` - 测试V2处理器（单文件）
+2. `run_inspector.ps1` - RAR结构探测
+3. `view_progress.ps1` - 查看处理进度
+4. `test_from_config.ps1` - 使用配置文件测试

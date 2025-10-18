@@ -5,7 +5,9 @@
   "paths": {
     "target_directory": "漫画-已整理",
     "temp_directory": ".temp_conversion",
-    "log_file": "manga_organizer.log"
+    "log_file": "manga_organizer.log",
+    "comics_input": "Z:/漫画/日漫/日语原版/Comics",
+    "comics_output": "Z:/漫画/漫画-已整理/日漫/日文版/Comics处理结果"
   },
 
   "formats": {
@@ -65,6 +67,55 @@
     "create_backup": false
   },
 
+  "nested_rar": {
+    "enabled": true,
+    "max_depth": 5,
+    "auto_detect": true,
+    "flatten_structure": true,
+    "clean_japanese_tags": true,
+    "patterns_to_remove": [
+      "【一般コミック】",
+      "【少年コミック】",
+      "【青年コミック】",
+      "【少女コミック】",
+      "【女性コミック】",
+      "【成年コミック】",
+      "【漫画雑誌】",
+      "[一般コミック]",
+      "[少年コミック]",
+      "[青年コミック]",
+      "【参考書】"
+    ],
+    "volume_patterns": [
+      {"pattern": "第(\\d+)巻", "format": "v{:02d}"},
+      {"pattern": "第(\\d+)卷", "format": "v{:02d}"},
+      {"pattern": "[Vv]ol[._\\s]*(\\d+)", "format": "v{:02d}"},
+      {"pattern": "v(\\d+)", "format": "v{:02d}"},
+      {"pattern": "\\s+(\\d{2,3})\\s*", "format": "v{:02d}"}
+    ],
+    "series_cleanup": {
+      "remove_patterns": [
+        "全\\d+巻",
+        "全\\d+卷",
+        "[「」『』\\[\\]（）()]"
+      ],
+      "trim_chars": " -_"
+    }
+  },
+
+  "progressive_processing": {
+    "enabled": true,
+    "progress_file": ".progress/processing_progress.json",
+    "batch_size": 50,
+    "max_daily_files": 500,
+    "max_session_time_minutes": 120,
+    "auto_save_interval_minutes": 5,
+    "auto_save_interval_files": 10,
+    "resume_on_error": true,
+    "keep_progress_history": true,
+    "max_history_entries": 100
+  },
+
   "filters": {
     "min_file_size": 0,
     "max_file_size": 0,
@@ -91,11 +142,9 @@
 
   "komga_prepare": {
     "source_dirs": [
-      "Z:/漫画/日漫",
-      "Z:/漫画/美漫",
-      "Z:/漫画/港漫"
+      "Z:/漫画/港漫/[神兵玄奇系列]/神兵前传III[7][未]"
     ],
-    "output_dir": "Z:/漫画-Komga就绪",
+    "output_dir": "Z:/漫画-Komga就绪-测试",
 
     "language_priority": ["zh", "ja", "romaji", "en"],
 
